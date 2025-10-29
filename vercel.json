@@ -11,5 +11,8 @@
       "src": "/(.*)",
       "dest": "server.js"
     }
-  ]
+  ],
+  "env": {
+    "DB_PASSWORD": "p7wq0G2aLgPh4YQs"
+  }
 }
