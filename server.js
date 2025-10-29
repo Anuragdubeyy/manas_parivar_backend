@@ -24,8 +24,11 @@ const app = express();
 const cors = require('cors');
 
 app.use(cors({
-  origin: ["https://manas-parivar.vercel.app/","http://localhost:3000", "http://localhost:5173"],
-  credentials: true,
+  origin: ["https://manas-parivar.vercel.app","http://localhost:3000", "http://localhost:5173"],
+  methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type,Authorization",
+    credentials: true,
+
 }));
 app.use(express.json());
 
