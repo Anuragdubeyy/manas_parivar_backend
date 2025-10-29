@@ -34,3 +34,6 @@ app.use('/api/products', productRoutes);
 
 const PORT =  5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.get("/", (req, res) => {
+  res.send("🚀 मानस परिवार Backend API Working!");
+});
