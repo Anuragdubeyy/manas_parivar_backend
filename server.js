@@ -19,14 +19,19 @@ mongoose
     console.error("Error connecting to MongoDB:", error);
   });
 
-
 const app = express();
+
 const cors = require('cors');
+
 app.use(cors({
   origin: ["http://localhost:3000", "http://localhost:5173"],
   credentials: true,
 }));
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("🚀 मानस परिवार Backend API Working!");
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -34,6 +39,3 @@ app.use('/api/products', productRoutes);
 
 const PORT =  5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-app.get("/", (req, res) => {
-  res.send("🚀 मानस परिवार Backend API Working!");
-});
