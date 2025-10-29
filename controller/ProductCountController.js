@@ -1,4 +1,4 @@
-const User = require("../model/user");
+const User = require("../model/User");
 const UserProductCount = require("../model/UserProductCount");
 const Product = require("../model/product");
 const ProductCount = require("../model/ProductCount");
