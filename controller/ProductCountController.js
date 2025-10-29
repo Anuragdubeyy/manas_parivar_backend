@@ -1,6 +1,6 @@
 const User = require("../model/User");
 const UserProductCount = require("../model/UserProductCount");
-const Product = require("../model/product");
+const Product = require("../model/Product");
 const ProductCount = require("../model/ProductCount");
 
 // ✅ ADMIN: Add new product
