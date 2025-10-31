@@ -47,7 +47,7 @@ exports.getProducts = async (req, res) => {
 
 // ✅ USER: Add to product count (accumulative)
 exports.addProductCount = async (req, res) => {
-  try {
+    try {
     const { productId, count } = req.body;
     const userId = req.user._id;
 
@@ -55,17 +55,25 @@ exports.addProductCount = async (req, res) => {
       return res.status(400).json({ message: "Invalid input" });
     }
 
-    // Find existing user record
-    let record = await ProductCount.findOne({ user: userId, product: productId });
+    const today = new Date();
+    const todayStart = new Date(today.setHours(0, 0, 0, 0));
+
+    // Find record for user, product, and today's date
+    let record = await ProductCount.findOne({
+      user: userId,
+      product: productId,
+      date: todayStart,
+    });
 
     if (record) {
-      record.count += count; // ✅ add to existing
+      record.count += count; // add to today's existing count
       await record.save();
     } else {
       record = await ProductCount.create({
         user: userId,
         product: productId,
         count,
+        date: todayStart,
       });
     }
 
@@ -165,6 +173,21 @@ exports.addUserProductCount = async (req, res) => {
     res.json({ message: "Product count updated", record });
   } catch (err) {
     console.error("Error adding user product count:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getDailyProductCounts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const records = await ProductCount.find({ user: userId })
+      .populate("product", "name")
+      .sort({ date: -1 });
+
+    res.status(200).json(records);
+  } catch (err) {
+    console.error("Error fetching counts:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
