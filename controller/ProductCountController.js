@@ -191,3 +191,53 @@ exports.getDailyProductCounts = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+exports.addTapCount = async (req, res) => {
+try {
+    const { productId } = req.body;
+    const userId = req.user._id;
+
+    if (!productId)
+      return res.status(400).json({ message: "Product required" });
+
+    // Each mala = 108 japs
+    const countToAdd = 108;
+
+    // Find or create user's count for today
+    let record = await ProductCount.findOne({
+      user: userId,
+      product: productId,
+      date: new Date().toDateString(), // group by day
+    });
+
+    if (record) {
+      record.count = (record.count || 0) + countToAdd; // ✅ Ensure number
+      await record.save();
+    } else {
+      record = await ProductCount.create({
+        user: userId,
+        product: productId,
+        count: countToAdd, // ✅ Always number
+        date: new Date().toDateString(),
+      });
+    }
+
+    // Update total count in Product model
+    const product = await Product.findById(productId);
+    if (product) {
+      product.totalCount = (product.totalCount || 0) + countToAdd;
+      await product.save();
+    }
+
+    const totalMalas = Math.floor(record.count / 108);
+
+    res.json({
+      message: "✅ Mala added successfully",
+      count: record.count,
+      totalMalas,
+    });
+  } catch (err) {
+    console.error("❌ Error adding mala:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

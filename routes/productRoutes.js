@@ -8,6 +8,7 @@ const {
   getMyCounts,
   getAllUsersWithCounts,
   getDailyProductCounts,
+  addTapCount,
 } = require("../controller/ProductCountController");
 
 const router = express.Router();
@@ -23,6 +24,8 @@ router.get("/admin/users-with-counts", protect, getAllUsersWithCounts);
 router.post("/count", protect, addProductCount);
 router.get("/daily",protect, getDailyProductCounts);
 router.get("/my-counts", protect, getMyCounts);
+router.post("/count/jap-tap", protect, addTapCount);
+
 
 
 module.exports = router;

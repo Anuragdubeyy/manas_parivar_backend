@@ -11,6 +11,7 @@ const MONGO = process.env.DB_PASSWORD;
 mongoose
   .connect(
     `mongodb+srv://anuragdubey16017_db_user:bUX2HLiXKXIneulR@cluster22.rwmyixm.mongodb.net/`,
+    // `mongodb+srv://anuragdubey16017_db_user:8lz09l4AhV2EUvsa@cluster0.1abym3w.mongodb.net/`,
   )
   .then(() => {
     console.log("Connected to MongoDB successfully");
@@ -24,7 +25,7 @@ const app = express();
 const cors = require('cors');
 
 app.use(cors({
-  origin: ["https://manas-parivar.vercel.app","http://localhost:3000", "http://localhost:5173"],
+  origin: ["https://manas-parivar.vercel.app", "http://localhost:5173"],
   methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type,Authorization",
     credentials: true,
