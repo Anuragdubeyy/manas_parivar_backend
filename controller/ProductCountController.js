@@ -7,7 +7,8 @@ const ProductCount = require("../model/ProductCount");
 exports.addProduct = async (req, res) => {
   try {
     const { name } = req.body;
-    if (!name) return res.status(400).json({ message: "Product name required" });
+    if (!name)
+      return res.status(400).json({ message: "Product name required" });
 
     const product = await Product.create({ name });
     res.status(201).json(product);
@@ -47,7 +48,7 @@ exports.getProducts = async (req, res) => {
 
 // ✅ USER: Add to product count (accumulative)
 exports.addProductCount = async (req, res) => {
-    try {
+  try {
     const { productId, count } = req.body;
     const userId = req.user._id;
 
@@ -55,14 +56,13 @@ exports.addProductCount = async (req, res) => {
       return res.status(400).json({ message: "Invalid input" });
     }
 
-    const today = new Date();
-    const todayStart = new Date(today.setHours(0, 0, 0, 0));
+    const todayStr = new Date().toISOString().split("T")[0];
 
     // Find record for user, product, and today's date
     let record = await ProductCount.findOne({
       user: userId,
       product: productId,
-      date: todayStart,
+      date: todayStr,
     });
 
     if (record) {
@@ -73,7 +73,7 @@ exports.addProductCount = async (req, res) => {
         user: userId,
         product: productId,
         count,
-        date: todayStart,
+        date: todayStr,
       });
     }
 
@@ -100,39 +100,91 @@ exports.getProductCounts = async (req, res) => {
       userCounts: counts,
     });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching counts", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching counts", error: err.message });
   }
 };
+
 
 // ✅ USER: Get own counts (only user’s data)
 exports.getMyCounts = async (req, res) => {
   try {
     const userId = req.user._id;
-    const counts = await ProductCount.find({ user: userId }).populate("product", "name");
+    const counts = await ProductCount.find({ user: userId }).populate(
+      "product",
+      "name"
+    );
     res.json(counts);
   } catch (err) {
     console.error("Error fetching counts:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+// exports.getAllUsersWithCounts = async (req, res) => {
+//    try {
+//     const users = await User.find({ role: "user" }).select("-password");
+
+//     const usersWithCounts = await Promise.all(
+//       users.map(async (user) => {
+//         // Get all counts for this user
+//         const counts = await ProductCount.find({ user: user._id }).populate("product", "name");
+
+//         // Calculate per-product totals
+//         const products = counts.map((item) => ({
+//           productId: item.product._id,
+//           productName: item.product.name,
+//           count: item.count,
+//         }));
+
+//         // Calculate total count for this user
+//         const totalUserCount = counts.reduce((sum, item) => sum + item.count, 0);
+
+//         return {
+//           _id: user._id,
+//           name: user.name,
+//           email: user.email,
+//           isBlocked: user.isBlocked,
+//           role: user.role,
+//           products,
+//           totalUserCount,
+//         };
+//       })
+//     );
+
+//     res.json(usersWithCounts);
+//   } catch (error) {
+//     console.error("Error fetching users with counts:", error);
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// };
 exports.getAllUsersWithCounts = async (req, res) => {
-   try {
+  try {
     const users = await User.find({ role: "user" }).select("-password");
 
     const usersWithCounts = await Promise.all(
       users.map(async (user) => {
-        // Get all counts for this user
-        const counts = await ProductCount.find({ user: user._id }).populate("product", "name");
+        // Get all counts for this user (from ProductCount)
+        const counts = await ProductCount.find({ user: user._id }).populate(
+          "product",
+          "name"
+        );
 
-        // Calculate per-product totals
-        const products = counts.map((item) => ({
-          productId: item.product._id,
-          productName: item.product.name,
-          count: item.count,
-        }));
+        // Group by product
+        const productMap = {};
+        for (const c of counts) {
+          const pid = c.product._id.toString();
+          if (!productMap[pid]) {
+            productMap[pid] = {
+              productId: pid,
+              productName: c.product.name,
+              count: 0,
+            };
+          }
+          productMap[pid].count += c.count;
+        }
 
-        // Calculate total count for this user
-        const totalUserCount = counts.reduce((sum, item) => sum + item.count, 0);
+        const products = Object.values(productMap);
 
         return {
           _id: user._id,
@@ -141,7 +193,6 @@ exports.getAllUsersWithCounts = async (req, res) => {
           isBlocked: user.isBlocked,
           role: user.role,
           products,
-          totalUserCount,
         };
       })
     );
@@ -152,12 +203,16 @@ exports.getAllUsersWithCounts = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 exports.addUserProductCount = async (req, res) => {
   try {
     const { productId, count } = req.body;
     const userId = req.user.id;
 
-    let record = await UserProductCount.findOne({ user: userId, product: productId });
+    let record = await UserProductCount.findOne({
+      user: userId,
+      product: productId,
+    });
 
     if (record) {
       record.count += Number(count);
@@ -181,9 +236,51 @@ exports.getDailyProductCounts = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const records = await ProductCount.find({ user: userId })
-      .populate("product", "name")
-      .sort({ date: -1 });
+    const records = await ProductCount.aggregate([
+      // 1️⃣ Filter by user
+      { $match: { user: userId } },
+
+      // 2️⃣ Truncate time part of date (keep only day)
+      {
+        $addFields: {
+          day: {
+            $dateTrunc: { date: "$date", unit: "day" }
+          }
+        }
+      },
+
+      // 3️⃣ Group by day + product
+      {
+        $group: {
+          _id: { day: "$day", product: "$product" },
+          totalCount: { $sum: "$count" }
+        }
+      },
+
+      // 4️⃣ Join product details
+      {
+        $lookup: {
+          from: "products",
+          localField: "_id.product",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      { $unwind: "$product" },
+
+      // 5️⃣ Sort latest first
+      { $sort: { "_id.day": -1 } },
+
+      // 6️⃣ Format output
+      {
+        $project: {
+          date: "$_id.day",
+          productName: "$product.name",
+          totalCount: 1,
+          _id: 0
+        }
+      }
+    ]);
 
     res.status(200).json(records);
   } catch (err) {
@@ -192,8 +289,9 @@ exports.getDailyProductCounts = async (req, res) => {
   }
 };
 
+
 exports.addTapCount = async (req, res) => {
-try {
+  try {
     const { productId } = req.body;
     const userId = req.user._id;
 
